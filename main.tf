@@ -3,7 +3,7 @@ terraform {
   required_providers {
       google = {
           source = "google"
-          version = ">= 3.73.0"
+          version = ">= 4.3.0"
       }
   }
 }
