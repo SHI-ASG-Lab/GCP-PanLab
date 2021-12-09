@@ -91,7 +91,7 @@ module "create_vpcs" {
 
 # PanNGFW-StrataVM
 
-data "google_compute_image" "pan-ngfw" {
+data "google_compute_machine_image" "pan-ngfw" {
   name    = "panlab-ngfw-image1"
   project = var.gcpProject
 }
