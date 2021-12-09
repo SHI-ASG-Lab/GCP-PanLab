@@ -3,7 +3,7 @@ terraform {
   required_providers {
       google = {
           source = "google"
-          version = ">= 4.3.0"
+          version = ">= 3.73.0"
       }
   }
 }
@@ -83,8 +83,8 @@ module "create_vpcs" {
 
   subnet_cidr1 = var.subnet_cidr1
   subnet_cidr2 = var.subnet_cidr2
-  fgint1 = var.panint1
-  fgint2 = var.panint2
+  panint1 = var.panint1
+  panint2 = var.panint2
   customerAbv = var.customerAbv
   projectName = "panlab-${var.customerAbv}"
 }
