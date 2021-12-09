@@ -1,2 +1,2 @@
 # GCP-FortiGateLab
-Training lab for FortiGateVM in GCP
+Training lab for PaloAlto NGFW in GCP

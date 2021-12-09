@@ -34,28 +34,16 @@ variable "gcpZone" {
 variable "customerAbv" {
   type = string
 }
-variable "ubnw1Count" {
-  type = number
-}
-variable "ubnw2Count" {
-  type = number
-}
-variable "win1Count" {
-  type = number
-}
-variable "win2Count" {
-  type = number
-}
 variable "subnet_cidr1" {
   type = string
 }
 variable "subnet_cidr2" {
   type = string
 }
-variable "fgint1" {
+variable "panint1" {
   type = string
 }
-variable "fgint2" {
+variable "panint2" {
   type = string
 }
 
@@ -63,10 +51,10 @@ variable "fgint2" {
 
 locals {
   fg1Labels = {
-    owner = "jwilliams"
+    owner = "mwheeler"
     sp    = "lab"
   }
-  netTags = ["fortilab1"]
+  netTags = ["panlab1"]
 }
 
 ## Resources ##
@@ -95,149 +83,72 @@ module "create_vpcs" {
 
   subnet_cidr1 = var.subnet_cidr1
   subnet_cidr2 = var.subnet_cidr2
-  fgint1 = var.fgint1
-  fgint2 = var.fgint2
+  fgint1 = var.panint1
+  fgint2 = var.panint2
   customerAbv = var.customerAbv
-  projectName = "fortilab-${var.customerAbv}"
+  projectName = "panlab-${var.customerAbv}"
 }
 
-# FortiGate
+# PanNGFW-StrataVM
 
-data "google_compute_image" "fg-ngfw" {
-  name    = "fortinet-ngfw"
+data "google_compute_image" "pan-ngfw" {
+  name    = "panlab-ngfw-image1"
   project = var.gcpProject
 }
 
-resource "google_compute_disk" "fgvm-1-disk" {
-  name = "fortilab-${var.customerAbv}-fgvm-1-disk"
+resource "google_compute_disk" "panvm-1-disk" {
+  name = "panlab-${var.customerAbv}-panvm-1-disk"
   description = "OS disk made from image"
-  image = data.google_compute_image.fg-ngfw.self_link
+  image = data.google_compute_image.pan-ngfw.self_link
   zone = var.gcpZone
 }
 
-resource "google_compute_address" "fgvm-1-ip" {
-  name = "fortilab-${var.customerAbv}-ext-fgvm-1-ip"
+resource "google_compute_address" "panvm-1-ip" {
+  name = "panlab-${var.customerAbv}-ext-panvm-1-ip"
   address_type = "EXTERNAL"
 }
 
-resource "google_compute_address" "fgvm-2-ip" {
-  name = "fortilab-${var.customerAbv}-ext-fgvm-2-ip"
+resource "google_compute_address" "panvm-2-ip" {
+  name = "panlab-${var.customerAbv}-ext-panvm-2-ip"
   address_type = "EXTERNAL"
 }
 
-resource "google_compute_address" "fgvm-3-ip" {
-  name = "fortilab-${var.customerAbv}-ext-fgvm-3-ip"
+resource "google_compute_address" "panvm-3-ip" {
+  name = "panlab-${var.customerAbv}-ext-panvm-3-ip"
   address_type = "EXTERNAL"
 }
 
-
-resource "google_compute_instance" "fgvm-1" {
+resource "google_compute_instance" "panvm-1" {
   project      = var.gcpProject
-  name         = "fortilab-${var.customerAbv}-fortigate-vm"
-  machine_type = "e2-standard-4"
+  name         = "panlab-${var.customerAbv}-panngfw-vm"
+  machine_type = "n1-standard-8"
   zone         = var.gcpZone
   boot_disk {
-    source     = google_compute_disk.fgvm-1-disk.self_link
+    source     = google_compute_disk.panvm-1-disk.self_link
   }
   network_interface {
     network    = data.google_compute_network.default.self_link
     subnetwork = data.google_compute_subnetwork.default.self_link
     access_config {
-      nat_ip = google_compute_address.fgvm-1-ip.address
+      nat_ip = google_compute_address.panvm-1-ip.address
     }  
   }
   network_interface {
     network    = module.create_vpcs.nw1
     subnetwork = module.create_vpcs.sn1
-    network_ip = var.fgint1
+    network_ip = var.panint1
     access_config {
-      nat_ip = google_compute_address.fgvm-2-ip.address
+      nat_ip = google_compute_address.panvm-2-ip.address
     }
   }
   network_interface {
     network    = module.create_vpcs.nw2
     subnetwork = module.create_vpcs.sn2
-    network_ip = var.fgint2
+    network_ip = var.panint2
     access_config {
-      nat_ip = google_compute_address.fgvm-3-ip.address
+      nat_ip = google_compute_address.panvm-3-ip.address
     }
   }
   labels = local.fg1Labels
   tags  = local.netTags
-}
-
-# Ubuntu System(s)
-
-module "ubuntu_nw1" {
-  source = "./modules/ubuntu_nw1"
-  depends_on = [google_compute_instance.fgvm-1]
-  count  = var.ubnw1Count
-
-  gcpProject = var.gcpProject
-  gcpZone = var.gcpZone
-
-  labels = local.fg1Labels
-  tags  = local.netTags
-
-  ub1Name = "fortilab-${var.customerAbv}-ubuntu1-${count.index}"
-  disk1Name = "fortilab-${var.customerAbv}-ubuntu1-${count.index}-disk"
-
-  network1    = module.create_vpcs.nw1
-  subnetwork1 = module.create_vpcs.sn1
-}
-
-module "ubuntu_nw2" {
-  source = "./modules/ubuntu_nw2"
-  depends_on = [google_compute_instance.fgvm-1]
-  count  = var.ubnw2Count
-
-  gcpProject = var.gcpProject
-  gcpZone = var.gcpZone
-
-  labels = local.fg1Labels
-  tags  = local.netTags
-
-  ub2Name = "fortilab-${var.customerAbv}-ubuntu2-${count.index}"
-  disk2Name = "fortilab-${var.customerAbv}-ubuntu2-${count.index}-disk"
-
-  network2    = module.create_vpcs.nw2
-  subnetwork2 = module.create_vpcs.sn2
-}
-
-# Windows Systems(s)  
-  
-  module "winsrv1" {
-  source = "./modules/winsrv1"
-  depends_on = [google_compute_instance.fgvm-1]
-  count  = var.win1Count
-
-  gcpProject = var.gcpProject
-  gcpZone = var.gcpZone
-
-  labels = local.fg1Labels
-  tags  = local.netTags
-
-  win1Name = "fortilab-${var.customerAbv}-winsrv1-${count.index}"
-  disk1Name = "fortilab-${var.customerAbv}-winsrv1-${count.index}-disk"
-
-  network1    = module.create_vpcs.nw1
-  subnetwork1 = module.create_vpcs.sn1
-}
-    
-  module "winsrv2" {
-  source = "./modules/winsrv2"
-  depends_on = [google_compute_instance.fgvm-1]
-  count  = var.win2Count
-
-  gcpProject = var.gcpProject
-  gcpZone = var.gcpZone
-
-  labels = local.fg1Labels
-  tags  = local.netTags
-
-  win2Name = "fortilab-${var.customerAbv}-winsrv2-${count.index}"
-  disk2Name = "fortilab-${var.customerAbv}-winsrv2-${count.index}-disk"
-
-  network2    = module.create_vpcs.nw2
-  subnetwork2 = module.create_vpcs.sn2
 }
