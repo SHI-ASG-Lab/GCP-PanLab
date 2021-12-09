@@ -92,6 +92,7 @@ module "create_vpcs" {
 # PanNGFW-StrataVM
 
 data "google_compute_machine_image" "pan-ngfw" {
+  provider = google-beta
   name    = "panlab-ngfw-image1"
   project = var.gcpProject
 }
@@ -99,7 +100,7 @@ data "google_compute_machine_image" "pan-ngfw" {
 resource "google_compute_disk" "panvm-1-disk" {
   name = "panlab-${var.customerAbv}-panvm-1-disk"
   description = "OS disk made from image"
-  image = data.google_compute_image.pan-ngfw.self_link
+  image = data.google_compute_machine_image.pan-ngfw.self_link
   zone = var.gcpZone
 }
 
